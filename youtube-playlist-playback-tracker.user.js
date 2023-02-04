@@ -99,8 +99,8 @@
 	}
 
 
-	async function displaySavedVideoIndex(listId) {
-		log("Displaying saved video index...");
+	async function displaySavedVideoLink(listId) {
+		log("Displaying saved video link...");
 		if (!listId) {
 			warn("Can't find parameter 'list' in the URL. Aborting.");
 			return;
@@ -172,7 +172,7 @@
 	const listId = urlParams.get('list');
 
 	if (document.location.pathname == "/playlist") {
-		displaySavedVideoIndex(listId);
+		displaySavedVideoLink(listId);
 		setTimeout(clearOldVideos, SAVE_DELAY);
 	}
 
