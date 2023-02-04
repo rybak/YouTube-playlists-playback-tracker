@@ -24,6 +24,8 @@ The source code is distributed under the terms of the MIT Licence.  See
 
    https://github.com/rybak/yt-ppt/raw/main/youtube-playlist-playback-tracker.user.js
 
+You can also install the script from [Greasy Fork][greasyfork].
+
 ## How it works
 
 After you watch a video in a playlist (URL must contain parameters `list` and
@@ -31,7 +33,7 @@ After you watch a video in a playlist (URL must contain parameters `list` and
 remember this video for this playlist.  Then, when you later open [the
 playlist][VFXcool] again, the script will show you were you've stopped.
 
-[greasyfork]: https://greasyfork.org/en/scripts/459412-youtube-playlists-playback-tracker "Install via GreasyFork"
+[greasyfork]: https://greasyfork.org/en/scripts/459412-youtube-playlists-playback-tracker "Install via Greasy Fork"
 [BackToTheFuture2]: https://www.youtube.com/watch?v=rhNDsPMaK_A&list=PLQlvLOFtrgKbQrKzRS_B-UYjEjX10LZNl "Video 'Back to the Future | VFXcool (2/2)' from Captain Disillusion"
 [VFXcool]: https://www.youtube.com/playlist?list=PLQlvLOFtrgKbQrKzRS_B-UYjEjX10LZNl "Playlist VFXcool from Captain Disillusion"
 [Wikipedia]: https://en.wikipedia.org/wiki/Userscript "English Wikipedia article 'Userscript'"
