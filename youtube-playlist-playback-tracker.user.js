@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      1
+// @version      2
 // @description  This script helps watch playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -93,7 +93,7 @@
 		newLink.id = 'YT_PL_TRACKER_LINK';
 		newLink.href = videoInPlaylistUrl(videoId, listId);
 		const videoTitle = createVideoTitle(videoId);
-		newLink.innerText = `Watched "${videoTitle}" on ${date}`;
+		newLink.innerText = `Continue watching "${videoTitle}" from ${date}.`;
 		newLink.style = `color: white;`;
 		return newLink;
 	}
