@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      2
+// @version      3
 // @description  This script helps watch playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -157,7 +157,7 @@
 			}
 			const year = parseInt(dateStr.slice(0, "YYYY".length));
 			log(`Checking ${dateKey} -> ${dateStr} -> ${year} -> ${listId}`);
-			if (year < currentYear - 1) {
+			if (year < currentYear - 3) {
 				const videoId = await GM.getValue(videoKey);
 				const url = videoInPlaylistUrl(videoId, listId);
 				log(`Deleting outdated list ${listId} -> ${url} on date ${dateStr}`);
