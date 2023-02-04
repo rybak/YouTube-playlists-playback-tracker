@@ -51,6 +51,10 @@
 	// hack to wait for necessary parts of the UI to load, in milliseconds
 	const YOUTUBE_UI_LOAD_DELAY = 6000;
 
+	function error(...toLog) {
+		console.error("[playlist tracker]", ...toLog);
+	}
+
 	function warn(...toLog) {
 		console.warn("[playlist tracker]", ...toLog);
 	}
@@ -137,10 +141,8 @@
 		return s.slice(pref.length, -suf.length);
 	}
 
-	async function clearOldVideos() {
+	async function forEachStoredVideo(f) {
 		const keys = await GM.listValues();
-		log("Clearing old videos...");
-		const currentYear = new Date().getFullYear();
 		for (const key of keys) {
 			if (!key.endsWith(STORAGE_KEY_DATE_SUFFIX)) {
 				continue;
@@ -155,16 +157,30 @@
 				GM.deleteValue(videoKey);
 				continue;
 			}
+			try {
+				f(listId, videoId, dateStr);
+			} catch (e) {
+				error(`Could not process ${key}: [${listId}, ${videoId}, ${dateStr}]`, e)
+			}
+		}
+	}
+
+	async function clearOldVideos() {
+		const keys = await GM.listValues();
+		log("Clearing old videos...");
+		const currentYear = new Date().getFullYear();
+		forEachStoredVideo(async (listId, videoId, dateStr) => {
+			const dateKey = dateStorageKey(listId);
+			const videoKey = videoStorageKey(listId);
 			const year = parseInt(dateStr.slice(0, "YYYY".length));
 			log(`Checking ${dateKey} -> ${dateStr} -> ${year} -> ${listId}`);
 			if (year < currentYear - 3) {
-				const videoId = await GM.getValue(videoKey);
 				const url = videoInPlaylistUrl(videoId, listId);
 				log(`Deleting outdated list ${listId} -> ${url} on date ${dateStr}`);
 				GM.deleteValue(dateKey);
 				GM.deleteValue(videoKey);
 			}
-		}
+		});
 	}
 
 	log("document.location.pathname =", document.location.pathname);
