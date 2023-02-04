@@ -192,11 +192,11 @@
 		setTimeout(clearOldVideos, SAVE_DELAY);
 	}
 
-	const videoId = urlParams.get('v');
-	if (document.location.pathname == "/watch" && videoId && listId) {
+	const currentVideoId = urlParams.get('v');
+	if (document.location.pathname == "/watch" && currentVideoId && listId) {
 		// only store a video after it was watched for a minute (for debugging only 2-5 seconds)
 		setTimeout(() => {
-			storeVideo(listId, videoId);
+			storeVideo(listId, currentVideoId);
 			clearOldVideos();
 		}, SAVE_DELAY);
 	}
