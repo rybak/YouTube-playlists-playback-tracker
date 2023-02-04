@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      4
+// @version      5
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -45,11 +45,12 @@
 	const STORAGE_KEY_PREFIX = "YT_PL_TRACKER_";
 	const STORAGE_KEY_VIDEO_SUFFIX = "_VIDEO";
 	const STORAGE_KEY_DATE_SUFFIX = "_DATE";
+	const STORAGE_KEY_VIDEO_INFO_SUFFIX = "_VIDEO_INFO";
 
 	// number of milliseconds to wait, until a video is considered "watched"
 	const SAVE_DELAY = 60000;
 	// hack to wait for necessary parts of the UI to load, in milliseconds
-	const YOUTUBE_UI_LOAD_DELAY = 6000;
+	const YOUTUBE_UI_LOAD_DELAY = 2000;
 
 	function error(...toLog) {
 		console.error("[playlist tracker]", ...toLog);
@@ -67,6 +68,24 @@
 		return STORAGE_KEY_PREFIX + id + STORAGE_KEY_VIDEO_SUFFIX;
 	}
 
+	function infoStorageKey(id) {
+		return STORAGE_KEY_PREFIX + id + STORAGE_KEY_VIDEO_INFO_SUFFIX;
+	}
+
+	async function loadInfo(id) {
+		const infoKey = infoStorageKey(id);
+		const s = await GM.getValue(infoKey);
+		if (!s) {
+			return null;
+		}
+		try {
+			return JSON.parse(s);
+		} catch (e) {
+			error(`Couldn't parse info for ${id} - ${infoKey}.`, e);
+			return null;
+		}
+	}
+
 	function dateStorageKey(id) {
 		return STORAGE_KEY_PREFIX + id + STORAGE_KEY_DATE_SUFFIX;
 	}
@@ -79,61 +98,96 @@
 		return `https://www.youtube.com/watch?v=${videoId}&list=${listId}`;
 	}
 
-	function createVideoTitle(videoId) {
+	async function fallbackVideoTitle(videoId) {
+		// fallback to finding the video title on the playlist
 		let links = document.querySelectorAll("#contents.ytd-playlist-video-list-renderer h3 a");
+		if (!links) {
+			return videoId;
+		}
 		for (let i = 0; i < links.length; i++) {
 			const link = links[i];
 			if (link.href.includes(videoId)) {
 				return link.title;
 			}
 		}
-		// fallback is needed, because as of 2023-02-04 YouTube only loads 100 videos
-		// into the playlist controls, unless the user scrolls through it
 		return videoId;
 	}
 
-	function createLink(videoId, listId, date) {
+	function createLink(videoId, listId, date, videoTitle, channelName) {
 		const newLink = document.createElement("a");
-		newLink.id = 'YT_PL_TRACKER_LINK';
 		newLink.href = videoInPlaylistUrl(videoId, listId);
-		const videoTitle = createVideoTitle(videoId);
-		newLink.innerText = `Continue watching "${videoTitle}" from ${date}.`;
+		newLink.innerText = `"${videoTitle}" from ${channelName} (watched on ${date}).`;
 		newLink.style = `color: white;`;
 		return newLink;
 	}
 
-
-	async function displaySavedVideoLink(listId) {
-		log("Displaying saved video link...");
+	async function showStoredVideoLink(listId) {
+		log("Showing stored video link...");
 		if (!listId) {
 			warn("Can't find parameter 'list' in the URL. Aborting.");
 			return;
 		}
-		const maybeVideoId = await GM.getValue(videoStorageKey(listId));
+		const maybeInfo = await loadInfo(listId);
+		let maybeVideoId = maybeInfo?.id;
+		if (!maybeVideoId) {
+			maybeVideoId = await GM.getValue(videoStorageKey(listId));
+		}
 		if (!maybeVideoId) {
 			log(`No video stored for list ${listId} yet.`);
 			return;
 		}
-		const date = await GM.getValue(dateStorageKey(listId));
-		log(`Showing stored video ${maybeVideoId} from date ${date}. Waiting for ${YOUTUBE_UI_LOAD_DELAY} ms...`);
-		setTimeout(() => { // stupid way of waiting until YouTube UI loads
-			log("Starting actual HTML edit...");
+		const videoId = maybeVideoId;
+		let dateStr = maybeInfo?.dateStr;
+		if (!dateStr) {
+			dateStr = await GM.getValue(dateStorageKey(listId));
+		}
+		log(`Showing stored video ${videoId} from date ${dateStr}. Waiting for ${YOUTUBE_UI_LOAD_DELAY} ms...`);
+		async function doShow() { // stupid way of waiting until YouTube UI loads
 			const header = document.querySelector(".metadata-buttons-wrapper");
-			const newLink = createLink(maybeVideoId, listId, date);
+			if (!header) {
+				log("UI hasn't loaded yet for showing the video. Retrying...");
+				setTimeout(doShow, YOUTUBE_UI_LOAD_DELAY);
+				return;
+			}
+			log("Starting actual HTML edit...");
+			let videoTitle = maybeInfo?.title;
+			if (!videoTitle) {
+				videoTitle = await fallbackVideoTitle(videoId);
+			}
+			const channelName = maybeInfo?.channelName;
+			const newLink = createLink(videoId, listId, dateStr, videoTitle, channelName);
+			newLink.id = "YT_PL_TRACKER_LINK";
 			log("newLink =", newLink);
-			header.appendChild(newLink);
+			const wrapper = document.createElement("span");
+			wrapper.innerText = "Continue watching ";
+			wrapper.appendChild(newLink);
+			header.appendChild(wrapper);
 			log("HTML edit finished.");
-		}, YOUTUBE_UI_LOAD_DELAY);
+		}
+		doShow();
+	}
+
+	function getVideoTitle() {
+		return document.querySelector('meta[name="title"]')?.content;
+	}
+
+	function getVideoChannelName() {
+		return document.getElementById("channel-name")?.outerText;
 	}
 
 	async function storeVideo(listId, videoId) {
-		log(`Storing ${videoId} as video for list ${listId}.`);
-		await GM.setValue(videoStorageKey(listId), videoId);
-		await storeDate(listId);
-	}
-
-	async function storeDate(listId) {
+		const videoTitle = getVideoTitle();
 		const dateStr = dateToString(new Date());
+		const channelName = getVideoChannelName();
+		const info = {
+			'id': videoId,
+			'title': videoTitle,
+			'dateStr': dateStr,
+			'channelName': channelName
+		};
+		const infoToLog = JSON.stringify(info);
+		log(`Storing ${infoToLog} as video for list ${listId}.`);
+		await GM.setValue(infoStorageKey(listId), JSON.stringify(info));
 		await GM.setValue(dateStorageKey(listId), dateStr);
 	}
 
@@ -151,14 +205,21 @@
 			const dateStr = await GM.getValue(dateKey);
 			const listId = removePrefixSuffix(dateKey, STORAGE_KEY_PREFIX, STORAGE_KEY_DATE_SUFFIX);
 			const videoKey = videoStorageKey(listId);
+			const infoKey = infoStorageKey(listId);
 			if (!dateStr) {
 				// clean up corrupted data, etc
 				GM.deleteValue(dateKey);
 				GM.deleteValue(videoKey);
+				GM.deleteValue(infoKey);
 				continue;
 			}
+			const info = await loadInfo(listId);
+			let videoId = info?.id;
+			if (!videoId) {
+				videoId = await GM.getValue(videoKey);
+			}
 			try {
-				f(listId, videoId, dateStr);
+				f(listId, videoId, dateStr, info);
 			} catch (e) {
 				error(`Could not process ${key}: [${listId}, ${videoId}, ${dateStr}]`, e)
 			}
@@ -169,7 +230,7 @@
 		const keys = await GM.listValues();
 		log("Clearing old videos...");
 		const currentYear = new Date().getFullYear();
-		forEachStoredVideo(async (listId, videoId, dateStr) => {
+		forEachStoredVideo(async (listId, videoId, dateStr, info) => {
 			const dateKey = dateStorageKey(listId);
 			const videoKey = videoStorageKey(listId);
 			const year = parseInt(dateStr.slice(0, "YYYY".length));
@@ -183,12 +244,45 @@
 		});
 	}
 
+	async function showOtherPlaylists(currentListId) {
+		const otherPlaylistsList = document.createElement('ol');
+		otherPlaylistsList.id = "YT_PL_TRACKER_OTHER_VIDEOS_LIST";
+		forEachStoredVideo(async (listId, videoId, dateStr, info) => {
+			if (listId == currentListId) {
+				return;
+			}
+			const infoToLog = JSON.stringify(info);
+			log(`Listing ${listId} -> ${infoToLog}`);
+			const li = document.createElement('li');
+			const videoTitle = info?.title;
+			const channelName = info?.channelName;
+			const link = createLink(videoId, listId, dateStr, videoTitle ? videoTitle : videoId, channelName);
+			li.appendChild(link);
+			otherPlaylistsList.appendChild(li);
+		});
+		function doShow() {
+			const playlistHeader = document.querySelector('ytd-playlist-header-renderer .immersive-header-content.style-scope.ytd-playlist-header-renderer');
+			if (!playlistHeader) {
+				log("UI hasn't loaded yet for showing other playlists. Retrying...");
+				setTimeout(doShow, YOUTUBE_UI_LOAD_DELAY);
+				return;
+			}
+			const otherHeader = document.createElement('span');
+			otherHeader.style = "font-size: large;";
+			otherHeader.innerText = "Other playlists";
+			playlistHeader.appendChild(otherHeader);
+			playlistHeader.appendChild(otherPlaylistsList);
+		}
+		doShow();
+	}
+
 	log("document.location.pathname =", document.location.pathname);
 
 	const listId = urlParams.get('list');
 
 	if (document.location.pathname == "/playlist") {
-		displaySavedVideoLink(listId);
+		showStoredVideoLink(listId);
+		showOtherPlaylists(listId);
 		setTimeout(clearOldVideos, SAVE_DELAY);
 	}
 
@@ -201,5 +295,5 @@
 		}, SAVE_DELAY);
 	}
 
-	log("Done");
+	log("Waiting for async parts to complete...");
 })();
