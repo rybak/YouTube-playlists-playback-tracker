@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      6
+// @version      7
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -262,6 +262,30 @@
 			const channelName = info?.channelName;
 			const link = createLink(videoId, listId, dateStr, videoTitle ? videoTitle : videoId, channelName);
 			li.appendChild(link);
+			li.append(" "); // spacer
+			const deleteButton = document.createElement('a');
+			deleteButton.innerText = "[x]";
+			deleteButton.title = "Delete this video";
+			deleteButton.style = `color: grey;`;
+			deleteButton.href = "#";
+			deleteButton.onclick = function(e) {
+				e.preventDefault();
+				const confirmed = window.confirm(`Are you sure you want to delete video "${videoTitle}" (${videoId}) from YouTube playlist playback tracker?`);
+				if (!confirmed) {
+					log(`Aborting deletion of "${videoTitle}" (${videoId}).`);
+					return;
+				}
+				log(`Deleting "${videoTitle}" (${videoId}) from tracker...`);
+				const dateKey = dateStorageKey(listId);
+				const videoKey = videoStorageKey(listId);
+				const infoKey = infoStorageKey(listId);
+				GM.deleteValue(dateKey);
+				GM.deleteValue(videoKey);
+				GM.deleteValue(infoKey);
+				otherPlaylistsList.removeChild(li);
+				log(`Video "${videoTitle}" (${videoId}) was deleted.`);
+			};
+			li.appendChild(deleteButton);
 			items.push({
 				"dateStr": dateStr,
 				"li": li
