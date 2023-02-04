@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      5
+// @version      6
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -12,6 +12,7 @@
 // @grant        GM.getValue
 // @grant        GM.listValues
 // @grant        GM.deleteValue
+// @grant        GM_addStyle
 // ==/UserScript==
 
 /*
@@ -46,6 +47,8 @@
 	const STORAGE_KEY_VIDEO_SUFFIX = "_VIDEO";
 	const STORAGE_KEY_DATE_SUFFIX = "_DATE";
 	const STORAGE_KEY_VIDEO_INFO_SUFFIX = "_VIDEO_INFO";
+
+	const OTHER_PLAYLISTS_LIST_ID = "YT_PL_TRACKER_OTHER_VIDEOS_LIST";
 
 	// number of milliseconds to wait, until a video is considered "watched"
 	const SAVE_DELAY = 60000;
@@ -245,8 +248,9 @@
 	}
 
 	async function showOtherPlaylists(currentListId) {
-		const otherPlaylistsList = document.createElement('ol');
-		otherPlaylistsList.id = "YT_PL_TRACKER_OTHER_VIDEOS_LIST";
+		const otherPlaylistsList = document.createElement('ul');
+		otherPlaylistsList.id = OTHER_PLAYLISTS_LIST_ID;
+		let items = [];
 		forEachStoredVideo(async (listId, videoId, dateStr, info) => {
 			if (listId == currentListId) {
 				return;
@@ -258,7 +262,13 @@
 			const channelName = info?.channelName;
 			const link = createLink(videoId, listId, dateStr, videoTitle ? videoTitle : videoId, channelName);
 			li.appendChild(link);
-			otherPlaylistsList.appendChild(li);
+			items.push({
+				"dateStr": dateStr,
+				"li": li
+			});
+		});
+		items.sort((a, b) => {
+			return a.dateStr < b.dateStr;
 		});
 		function doShow() {
 			const playlistHeader = document.querySelector('ytd-playlist-header-renderer .immersive-header-content.style-scope.ytd-playlist-header-renderer');
@@ -266,6 +276,28 @@
 				log("UI hasn't loaded yet for showing other playlists. Retrying...");
 				setTimeout(doShow, YOUTUBE_UI_LOAD_DELAY);
 				return;
+			}
+			GM_addStyle(`
+				#${OTHER_PLAYLISTS_LIST_ID} a {
+				  text-decoration: none;
+				}
+				#${OTHER_PLAYLISTS_LIST_ID} a:hover {
+				  text-decoration: underline;
+				}
+				#${OTHER_PLAYLISTS_LIST_ID} {
+				  list-style-type: disclosure-closed;
+				  list-style-position: inside;
+				}
+				#${OTHER_PLAYLISTS_LIST_ID} li {
+				  padding: initial;
+				}
+				#${OTHER_PLAYLISTS_LIST_ID} li::marker {
+				  font-size: initial;
+				}
+			`);
+			log("Showing", items.length, "videos");
+			for (const item of items) {
+				otherPlaylistsList.appendChild(item.li);
 			}
 			const otherHeader = document.createElement('span');
 			otherHeader.style = "font-size: large;";
