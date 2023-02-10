@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
 // @namespace    http://tampermonkey.net/
-// @version      7
+// @version      8
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -251,7 +251,8 @@
 		const otherPlaylistsList = document.createElement('ul');
 		otherPlaylistsList.id = OTHER_PLAYLISTS_LIST_ID;
 		let items = [];
-		forEachStoredVideo(async (listId, videoId, dateStr, info) => {
+		// `await` to make sure that list `items` is populated before sorting
+		await forEachStoredVideo(async (listId, videoId, dateStr, info) => {
 			if (listId == currentListId) {
 				return;
 			}
@@ -292,7 +293,8 @@
 			});
 		});
 		items.sort((a, b) => {
-			return a.dateStr < b.dateStr;
+			// reverse order, so most recently viewed is on top
+			return a.dateStr < b.dateStr ? 1 : -1;
 		});
 		function doShow() {
 			const playlistHeader = document.querySelector('ytd-playlist-header-renderer .immersive-header-content.style-scope.ytd-playlist-header-renderer');
