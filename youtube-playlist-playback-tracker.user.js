@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         YouTube: playlists playback tracker
-// @namespace    http://tampermonkey.net/
-// @version      8
+// @namespace    https://github.com/rybak
+// @homepageURL  https://github.com/rybak/yt-ppt
+// @version      9
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
