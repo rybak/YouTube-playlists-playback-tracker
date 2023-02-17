@@ -192,6 +192,10 @@
 		const infoToLog = JSON.stringify(info);
 		log(`Storing ${infoToLog} as video for list ${listId}.`);
 		await GM.setValue(infoStorageKey(listId), JSON.stringify(info));
+		/*
+		 * Yes, this is a dumb way of storing data, but I have to keep
+		 * storing dates separately for backwards compatibility.
+		 */
 		await GM.setValue(dateStorageKey(listId), dateStr);
 	}
 
@@ -202,6 +206,10 @@
 	async function forEachStoredVideo(f) {
 		const keys = await GM.listValues();
 		for (const key of keys) {
+			/*
+			 * Yes, this is a dumb way of storing data, but I have to keep
+			 * checking stored dates for backwards compatibility.
+			 */
 			if (!key.endsWith(STORAGE_KEY_DATE_SUFFIX)) {
 				continue;
 			}
