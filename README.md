@@ -26,6 +26,8 @@ The source code is distributed under the terms of the MIT Licence.  See
 
 You can also install the script from [Greasy Fork][greasyfork].
 
+[![Badge showing number of installs from Greasy Fork](https://img.shields.io/badge/dynamic/json?style=flat&color=670000&label=Greasy%20Fork&query=total_installs&suffix=%20installs&url=https%3A%2F%2Fgreasyfork.org%2Fscripts%2F459412.json)](https://greasyfork.org/en/scripts/459412-youtube-playlists-playback-tracker)
+
 ## How it works
 
 After you watch a video in a playlist (URL must contain parameters `list` and
