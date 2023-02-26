@@ -38,6 +38,8 @@
  * SOFTWARE.
  */
 
+/* jshint esversion: 6 */
+
 (async function() {
 	'use strict';
 
