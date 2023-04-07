@@ -2,7 +2,7 @@
 // @name         YouTube: playlists playback tracker
 // @namespace    https://github.com/rybak
 // @homepageURL  https://github.com/rybak/yt-ppt
-// @version      9
+// @version      10
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -178,7 +178,7 @@
 	}
 
 	function getVideoChannelName() {
-		return document.getElementById("channel-name")?.outerText;
+		return document.getElementById("#below #above-the-fold #upload-info #channel-name")?.outerText;
 	}
 
 	async function storeVideo(listId, videoId) {
@@ -264,10 +264,11 @@
 		let items = [];
 		// `await` to make sure that list `items` is populated before sorting
 		await forEachStoredVideo(async (listId, videoId, dateStr, info) => {
+			const infoToLog = JSON.stringify(info);
 			if (listId == currentListId) {
+				log(`Skipping current ${listId} -> ${infoToLog}`);
 				return;
 			}
-			const infoToLog = JSON.stringify(info);
 			log(`Listing ${listId} -> ${infoToLog}`);
 			const li = document.createElement('li');
 			const videoTitle = info?.title;
