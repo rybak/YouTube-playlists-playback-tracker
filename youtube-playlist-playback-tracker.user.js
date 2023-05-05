@@ -2,7 +2,7 @@
 // @name         YouTube: playlists playback tracker
 // @namespace    https://github.com/rybak
 // @homepageURL  https://github.com/rybak/yt-ppt
-// @version      12
+// @version      13
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -208,7 +208,9 @@
 		return res;
 	}
 
-	async function storeVideo(listId, videoId) {
+	async function storeVideo() {
+		const listId = getCurrentPlaylistId();
+		const videoId = getCurrentVideoId();
 		const videoTitle = getVideoTitle();
 		const dateStr = dateToString(new Date());
 		const channelName = getVideoChannelName();
@@ -375,22 +377,57 @@
 
 	log("document.location.pathname =", document.location.pathname);
 
-	const listId = getCurrentPlaylistId();
+	let timeoutId = -1;
 
-	if (document.location.pathname == "/playlist") {
+	function cancelPreviousTimeout() {
+		if (timeoutId > 0) {
+			clearTimeout(timeoutId);
+		}
+	}
+
+	async function processPlaylistPage() {
+		const listId = getCurrentPlaylistId();
+		if (!listId) {
+			return;
+		}
 		showStoredVideoLink(listId);
 		showOtherPlaylists(listId);
-		setTimeout(clearOldVideos, SAVE_DELAY);
 	}
 
-	const currentVideoId = getCurrentVideoId();
-	if (document.location.pathname == "/watch" && currentVideoId && listId) {
+	async function processWatchPage() {
+		if (!getCurrentPlaylistId() || !getCurrentVideoId()) {
+			return;
+		}
+		cancelPreviousTimeout();
 		// only store a video after it was watched for a minute (for debugging only 2-5 seconds)
-		setTimeout(() => {
-			storeVideo(listId, currentVideoId);
-			clearOldVideos();
-		}, SAVE_DELAY);
+		timeoutId = setTimeout(storeVideo, SAVE_DELAY);
 	}
+
+	async function processPage() {
+		if (document.location.pathname == "/playlist") {
+			processPlaylistPage();
+		}
+		if (document.location.pathname == "/watch") {
+			processWatchPage();
+		}
+	}
+
+	await processPage();
+	setTimeout(clearOldVideos, 2 * SAVE_DELAY);
+
+	let currentVideoId = getCurrentVideoId();
+	// set up an observer to detect playlist autoplay and next/prev clicking
+	const observer = new MutationObserver((mutationsList) => {
+		const maybeNewVideoId = getCurrentVideoId();
+		log('Mutation to', maybeNewVideoId);
+		if (maybeNewVideoId != currentVideoId) {
+			currentVideoId = maybeNewVideoId;
+			log('MutationObserver: video has changed:', document.location.href);
+			processPage();
+		}
+	});
+	// using <title> as a hack -- there's no good reliable way to detect fancy "on-the-fly" page reloads
+	observer.observe(document.querySelector('title'), { subtree: true, characterData: true, childList: true });
 
 	log("Waiting for async parts to complete...");
 })();
