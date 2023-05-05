@@ -2,7 +2,7 @@
 // @name         YouTube: playlists playback tracker
 // @namespace    https://github.com/rybak
 // @homepageURL  https://github.com/rybak/yt-ppt
-// @version      11
+// @version      12
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -58,6 +58,8 @@
 	// hack to wait for necessary parts of the UI to load, in milliseconds
 	const YOUTUBE_UI_LOAD_DELAY = 2000;
 
+	const WHITESPACE_REGEX = /\s+/gm;
+
 	function error(...toLog) {
 		console.error("[playlist tracker]", ...toLog);
 	}
@@ -78,6 +80,13 @@
 		return STORAGE_KEY_PREFIX + id + STORAGE_KEY_VIDEO_INFO_SUFFIX;
 	}
 
+	function cleanUpStr(s) {
+		if (!s) {
+			return "";
+		}
+		return s.replace(WHITESPACE_REGEX, ' ').trim();
+	}
+
 	async function loadInfo(id) {
 		const infoKey = infoStorageKey(id);
 		const s = await GM.getValue(infoKey);
@@ -85,7 +94,9 @@
 			return null;
 		}
 		try {
-			return JSON.parse(s);
+			let res = JSON.parse(s);
+			res.channelName = cleanUpStr(res.channelName);
+			return res;
 		} catch (e) {
 			error(`Couldn't parse info for ${id} - ${infoKey}.`, e);
 			return null;
@@ -178,7 +189,8 @@
 	}
 
 	function getVideoChannelName() {
-		const res = document.querySelector("#below #above-the-fold #upload-info #channel-name")?.outerText;
+		let res = document.querySelector("#below #above-the-fold #upload-info #channel-name")?.outerText;
+		res = cleanUpStr(res);
 		log(`Extracted channel name: '${res}'`);
 		return res;
 	}
