@@ -43,8 +43,6 @@
 (async function() {
 	'use strict';
 
-	const urlParams = new URLSearchParams(document.location.search);
-
 	// never change -- used as part of IDs in storage in user's browser
 	const STORAGE_KEY_PREFIX = "YT_PL_TRACKER_";
 	const STORAGE_KEY_VIDEO_SUFFIX = "_VIDEO";
@@ -70,6 +68,16 @@
 
 	function log(...toLog) {
 		console.log("[playlist tracker]", ...toLog);
+	}
+
+	function getCurrentPlaylistId() {
+		const urlParams = new URLSearchParams(document.location.search);
+		return urlParams.get('list');
+	}
+
+	function getCurrentVideoId() {
+		const urlParams = new URLSearchParams(document.location.search);
+		return urlParams.get('v');
 	}
 
 	function videoStorageKey(id) {
@@ -362,7 +370,7 @@
 
 	log("document.location.pathname =", document.location.pathname);
 
-	const listId = urlParams.get('list');
+	const listId = getCurrentPlaylistId();
 
 	if (document.location.pathname == "/playlist") {
 		showStoredVideoLink(listId);
@@ -370,7 +378,7 @@
 		setTimeout(clearOldVideos, SAVE_DELAY);
 	}
 
-	const currentVideoId = urlParams.get('v');
+	const currentVideoId = getCurrentVideoId();
 	if (document.location.pathname == "/watch" && currentVideoId && listId) {
 		// only store a video after it was watched for a minute (for debugging only 2-5 seconds)
 		setTimeout(() => {
