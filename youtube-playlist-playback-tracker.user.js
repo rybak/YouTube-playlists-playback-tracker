@@ -193,7 +193,12 @@
 	}
 
 	function getVideoTitle() {
-		return document.querySelector('meta[name="title"]')?.content;
+		let s = document.querySelector('title')?.innerText;
+		if (!s) {
+			return "unknown title";
+		}
+		s = s.slice(0, -10); // cut of " - YouTube"
+		return s;
 	}
 
 	function getVideoChannelName() {
