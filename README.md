@@ -1,4 +1,5 @@
 [![Badge showing number of installs from Greasy Fork][GreasyForkInstallsBadge]][greasyfork]
+[![Badge showing version of the userscript][GreasyForkVersionBadge]][greasyfork]
 
 # YouTube playlist playback tracker
 
@@ -37,3 +38,4 @@ playlist][VFXcool] again, the script will show you were you've stopped.
 [VFXcool]: https://www.youtube.com/playlist?list=PLQlvLOFtrgKbQrKzRS_B-UYjEjX10LZNl "Playlist VFXcool from Captain Disillusion"
 [Wikipedia]: https://en.wikipedia.org/wiki/Userscript "English Wikipedia article 'Userscript'"
 [GreasyForkInstallsBadge]: https://img.shields.io/badge/dynamic/json?style=flat&color=670000&label=Greasy%20Fork&query=total_installs&suffix=%20installs&url=https%3A%2F%2Fgreasyfork.org%2Fscripts%2F459412.json
+[GreasyForkVersionBadge]: https://img.shields.io/badge/dynamic/json?style=flat&color=670000&label=Version&query=version&url=https%3A%2F%2Fgreasyfork.org%2Fscripts%2F459412.json
