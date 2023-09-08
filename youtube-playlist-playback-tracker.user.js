@@ -2,7 +2,8 @@
 // @name         YouTube: playlists playback tracker
 // @namespace    https://github.com/rybak
 // @homepageURL  https://github.com/rybak/YouTube-playlists-playback-tracker
-// @version      13
+// @supportURL   https://greasyfork.org/en/scripts/459412-youtube-playlists-playback-tracker/feedback
+// @version      14
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
