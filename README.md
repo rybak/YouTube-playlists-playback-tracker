@@ -1,7 +1,7 @@
 [![Badge showing number of installs from Greasy Fork][GreasyForkInstallsBadge]][greasyfork]
 [![Badge showing version of the userscript][GreasyForkVersionBadge]][greasyfork]
 
-# YouTube playlist playback tracker
+# YouTube playlists playback tracker
 
 ![Demonstration of the userscript "YouTube: playlists playback tracker" on playlist "VFXcool" of the YouTube channel "Captain Disillusion".](images/yt-ppt-VFXcool.png)
 
