@@ -3,7 +3,7 @@
 // @namespace    https://github.com/rybak
 // @homepageURL  https://github.com/rybak/YouTube-playlists-playback-tracker
 // @supportURL   https://greasyfork.org/en/scripts/459412-youtube-playlists-playback-tracker/feedback
-// @version      14
+// @version      15
 // @description  This script helps watching playlists. It tracks the last video from a playlist that you've watched on this computer.
 // @author       Andrei Rybak
 // @license      MIT
@@ -18,7 +18,7 @@
 // ==/UserScript==
 
 /*
- * Copyright (c) 2023 Andrei Rybak
+ * Copyright (c) 2023-2024 Andrei Rybak
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,7 @@
 	const STORAGE_KEY_VIDEO_INFO_SUFFIX = "_VIDEO_INFO";
 
 	const OTHER_PLAYLISTS_LIST_ID = "YT_PL_TRACKER_OTHER_VIDEOS_LIST";
+	const VIDEO_LINK_ID = 'YT_PL_TRACKER_LINK';
 
 	// number of milliseconds to wait, until a video is considered "watched"
 	const SAVE_DELAY = 60000;
@@ -69,6 +70,10 @@
 
 	function log(...toLog) {
 		console.log("[playlist tracker]", ...toLog);
+	}
+
+	function debug(...toLog) {
+		console.debug("[playlist tracker]", ...toLog);
 	}
 
 	function getCurrentPlaylistId() {
@@ -169,12 +174,16 @@
 		}
 		log(`Showing stored video ${videoId} from date ${dateStr}. Waiting for ${YOUTUBE_UI_LOAD_DELAY} ms...`);
 		async function doShow() { // stupid way of waiting until YouTube UI loads
-			const header = document.querySelector(".metadata-buttons-wrapper");
-			if (!header) {
+			const headers = Array.from(
+				document.querySelectorAll(".metadata-buttons-wrapper, yt-flexible-actions-view-model")
+			).filter(h => h.offsetParent !== null);
+			if (headers.length === 0) {
 				log("UI hasn't loaded yet for showing the video. Retrying...");
 				setTimeout(doShow, YOUTUBE_UI_LOAD_DELAY);
 				return;
 			}
+			const header = headers[0];
+			// debug("HEADER", header);
 			log("Starting actual HTML edit...");
 			let videoTitle = maybeInfo?.title;
 			if (!videoTitle) {
@@ -182,10 +191,11 @@
 			}
 			const channelName = maybeInfo?.channelName;
 			const newLink = createLink(videoId, listId, dateStr, videoTitle, channelName);
-			newLink.id = "YT_PL_TRACKER_LINK";
+			newLink.id = VIDEO_LINK_ID;
 			log("newLink =", newLink);
 			const wrapper = document.createElement("span");
 			wrapper.innerText = "Continue watching ";
+			wrapper.style.color = 'white';
 			wrapper.appendChild(newLink);
 			header.appendChild(wrapper);
 			log("HTML edit finished.");
@@ -339,8 +349,10 @@
 			return a.dateStr < b.dateStr ? 1 : -1;
 		});
 		function doShow() {
-			const playlistHeader = document.querySelector('ytd-playlist-header-renderer .immersive-header-content.style-scope.ytd-playlist-header-renderer');
-			if (!playlistHeader) {
+			const playlistHeaders = Array.from(
+				document.querySelectorAll('ytd-playlist-header-renderer .immersive-header-content.style-scope.ytd-playlist-header-renderer, yt-page-header-view-model .page-header-view-model-wiz__page-header-content')
+			).filter(h => h.offsetParent !== null);
+			if (playlistHeaders.length === 0) {
 				log("UI hasn't loaded yet for showing other playlists. Retrying...");
 				setTimeout(doShow, YOUTUBE_UI_LOAD_DELAY);
 				return;
@@ -361,6 +373,10 @@
 				}
 				#${OTHER_PLAYLISTS_LIST_ID} li::marker {
 				  font-size: initial;
+				  color: white;
+				}
+				#${OTHER_PLAYLISTS_LIST_ID} {
+				  color: white;
 				}
 			`);
 			log("Showing", items.length, "videos");
@@ -368,8 +384,10 @@
 				otherPlaylistsList.appendChild(item.li);
 			}
 			const otherHeader = document.createElement('span');
-			otherHeader.style = "font-size: large;";
+			otherHeader.style = "font-size: large; color: white;";
 			otherHeader.innerText = "Other playlists";
+			const playlistHeader = playlistHeaders[0];
+			// debug('PHEADER', playlistHeader);
 			playlistHeader.appendChild(otherHeader);
 			playlistHeader.appendChild(otherPlaylistsList);
 		}
@@ -421,10 +439,16 @@
 	const observer = new MutationObserver((mutationsList) => {
 		const maybeNewVideoId = getCurrentVideoId();
 		log('Mutation to', maybeNewVideoId);
-		if (maybeNewVideoId != currentVideoId) {
+		if (maybeNewVideoId !== currentVideoId) {
 			currentVideoId = maybeNewVideoId;
 			log('MutationObserver: video has changed:', document.location.href);
 			processPage();
+			return;
+		}
+		if (document.getElementById(VIDEO_LINK_ID)?.offsetParent === null) {
+			log('MutationObserver: UI has not loaded properly.');
+			processPage();
+			return;
 		}
 	});
 	// using <title> as a hack -- there's no good reliable way to detect fancy "on-the-fly" page reloads
